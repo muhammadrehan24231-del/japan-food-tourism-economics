@@ -1,0 +1,1206 @@
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import webbrowser
+import math
+
+# ============================================================
+# JAPAN FOOD TOURISM: SOCIAL MEDIA + ECONOMIC IMPACT RESEARCH
+# Python standard library only. No API keys or extra packages.
+# ============================================================
+
+APP_TITLE = "Japan Food Tourism | Research Dashboard"
+
+BG = "#0b1020"
+PANEL = "#141c30"
+PANEL_2 = "#1b2740"
+TEXT = "#f1f5f9"
+MUTED = "#a7b3c9"
+ACCENT = "#f59e0b"
+BLUE = "#60a5fa"
+GREEN = "#34d399"
+RED = "#fb7185"
+PURPLE = "#c4b5fd"
+GRID = "#344158"
+
+# ------------------------------------------------------------
+# DATA
+# Food spending and total inbound spending are in ¥100 million
+# in the original source. We convert to ¥ trillion for display.
+# ------------------------------------------------------------
+
+FOOD_SPENDING_100M = {
+    2011: 2294,
+    2012: 3109,
+    2013: 4173,
+    2014: 5940,
+    2015: 9023,
+    2016: 10470,
+    2017: 12315,
+    2018: 13106,
+    2019: 13888,
+    2022: 2715,
+    2023: 15948,
+    2024: 23346,
+}
+
+TOTAL_SPENDING_100M = {
+    2011: 8135,
+    2012: 10846,
+    2013: 14167,
+    2014: 20278,
+    2015: 34771,
+    2016: 37476,
+    2017: 44162,
+    2018: 45189,
+    2019: 48135,
+    2022: 8987,
+    2023: 53065,
+    2024: 81257,
+}
+
+ARRIVALS_MILLIONS = {
+    2011: 6.22,
+    2012: 8.36,
+    2013: 10.36,
+    2014: 13.41,
+    2015: 19.74,
+    2016: 24.04,
+    2017: 28.69,
+    2018: 31.19,
+    2019: 31.88,
+    2022: 3.83,
+    2023: 25.07,
+    2024: 36.87,
+}
+
+# Survey indicator: share of foreign visitors who expected to
+# eat Japanese food. Multiple responses were permitted.
+FOOD_MOTIVATION_2022 = 78.3
+
+# Wider tourism-sector estimates; these are not food-tourism GDP.
+WTTC_TOTAL_TOURISM_GDP_SHARE_2024 = 7.5
+OECD_DIRECT_TOURISM_GDP_SHARE_2023 = 1.9
+
+SOCIAL_TIMELINE = [
+    {
+        "year": "2018",
+        "title": "Instagram and digital food culture",
+        "detail": (
+            "A study of Japanese digital food culture reports that "
+            "Instagram overtook Facebook as Japan's fastest-growing "
+            "social platform in 2018, with 22.9 million active users. "
+            "Food was the second-most-followed topic on Instagram."
+        ),
+        "kind": "Research on food culture",
+        "strength": "Evidence of a food-content environment"
+    },
+    {
+        "year": "2019",
+        "title": "Pre-pandemic baseline",
+        "detail": (
+            "Japan recorded about 31.88 million inbound visitors and "
+            "¥1.3888 trillion in food-related visitor spending. "
+            "This is a useful baseline before pandemic travel restrictions."
+        ),
+        "kind": "Tourism baseline",
+        "strength": "Measured tourism and spending"
+    },
+    {
+        "year": "2020–2021",
+        "title": "Pandemic breaks the normal trend",
+        "detail": (
+            "International travel restrictions disrupted tourism. "
+            "The pandemic makes it impossible to interpret the next "
+            "change as a clean social-media effect."
+        ),
+        "kind": "Major confounding event",
+        "strength": "Important limitation"
+    },
+    {
+        "year": "2023",
+        "title": "Short-form video and travel discovery",
+        "detail": (
+            "A Japan smartphone-and-travel study published in January "
+            "2024 reported that Instagram and TikTok usage had each "
+            "increased by more than 10 percentage points since 2019. "
+            "This is platform-use evidence, not a direct count of "
+            "Japan-food videos or food-motivated trips."
+        ),
+        "kind": "Social-media growth indicator",
+        "strength": "Suggestive, not causal"
+    },
+    {
+        "year": "2023",
+        "title": "Tourism spending rebounds",
+        "detail": (
+            "Inbound visitors spent about ¥5.3 trillion in Japan in "
+            "2023. Food-related spending was about ¥1.5948 trillion "
+            "in the annual series used here."
+        ),
+        "kind": "Economic outcome",
+        "strength": "Measured spending"
+    },
+    {
+        "year": "2024",
+        "title": "Record visitor numbers and food spending",
+        "detail": (
+            "Japan received about 36.87 million inbound visitors. "
+            "Food-related spending reached about ¥2.3346 trillion, "
+            "while total inbound visitor spending reached about "
+            "¥8.1257 trillion."
+        ),
+        "kind": "Economic outcome",
+        "strength": "Measured spending"
+    },
+]
+
+SOURCES = [
+    (
+        "Japan Tourism Agency — International Visitor Survey",
+        "Official survey methodology, annual and quarterly results, "
+        "and spending by category.",
+        "https://www.mlit.go.jp/kankocho/en/siryou/toukei/syouhityousa.html"
+    ),
+    (
+        "MAFF / Kansai METI — Food-related inbound tourist spending",
+        "Annual food-related spending series based on Japan Tourism "
+        "Agency survey data, including 2011–2019 and 2022–2024.",
+        "https://www.kansai.meti.go.jp/2kokusai/ryoujikan/2026forum/2026forum_E/2026nouseikyoku_maff_e.pdf"
+    ),
+    (
+        "Digital food culture in Japan — academic study",
+        "Discusses Instagram, food content and Japan's digital foodscape.",
+        "https://www.tandfonline.com/doi/full/10.1080/15528014.2022.2100972"
+    ),
+    (
+        "JTB Tourism Research — Smartphone Usage and Travel Consumption 2023",
+        "Reports growth in social-media usage and travel information habits.",
+        "https://www.tourism.jp/en/wp/wp-content/uploads/2024/03/smartphone-usage-and-travel-consumption-2023.pdf"
+    ),
+    (
+        "Japan Tourism Agency — 2023 inbound spending results",
+        "Official 2023 inbound travel spending results.",
+        "https://www.mlit.go.jp/kankocho/news02_000534.html"
+    ),
+    (
+        "JETRO — Tourism and hospitality in Japan",
+        "Explains the scale of inbound spending and its importance to Japan.",
+        "https://www.jetro.go.jp/en/invest/attractive_sectors/tourism/overview.html"
+    ),
+    (
+        "OECD — Tourism Trends and Policies 2026",
+        "International comparison and tourism-sector context.",
+        "https://www.oecd.org/en/topics/tourism.html"
+    ),
+]
+
+# ------------------------------------------------------------
+# HELPERS
+# ------------------------------------------------------------
+
+def trillion(value_100m):
+    # ¥100 million units -> ¥ trillion
+    return value_100m / 10000.0
+
+
+def pct_change(start, end):
+    if start == 0:
+        return None
+    return ((end - start) / start) * 100
+
+
+def open_url(url):
+    webbrowser.open_new_tab(url)
+
+
+def add_wrapped_label(parent, text, font=("Segoe UI", 11),
+                      fg=TEXT, bg=PANEL, padx=0, pady=4):
+    label = tk.Label(
+        parent, text=text, font=font, fg=fg, bg=bg,
+        justify="left", anchor="w", wraplength=950
+    )
+    label.pack(fill="x", padx=padx, pady=pady)
+    return label
+
+
+# ------------------------------------------------------------
+# SCROLLABLE TAB
+# Each tab gets its own vertical scrollbar.
+# ------------------------------------------------------------
+
+class ScrollableTab(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.canvas = tk.Canvas(
+            self, bg=BG, highlightthickness=0, borderwidth=0
+        )
+        self.scrollbar = ttk.Scrollbar(
+            self, orient="vertical", command=self.canvas.yview
+        )
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        self.content = tk.Frame(self.canvas, bg=BG)
+        self.window_id = self.canvas.create_window(
+            (0, 0), window=self.content, anchor="nw"
+        )
+
+        self.content.bind("<Configure>", self._update_scroll_region)
+        self.canvas.bind("<Configure>", self._resize_content)
+        self.canvas.bind("<Enter>", self._bind_mousewheel)
+        self.canvas.bind("<Leave>", self._unbind_mousewheel)
+
+    def _update_scroll_region(self, event=None):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _resize_content(self, event):
+        self.canvas.itemconfigure(self.window_id, width=event.width)
+
+    def _bind_mousewheel(self, event=None):
+        self.canvas.bind_all("<MouseWheel>", self._mousewheel)
+        self.canvas.bind_all("<Button-4>", self._linux_scroll_up)
+        self.canvas.bind_all("<Button-5>", self._linux_scroll_down)
+
+    def _unbind_mousewheel(self, event=None):
+        self.canvas.unbind_all("<MouseWheel>")
+        self.canvas.unbind_all("<Button-4>")
+        self.canvas.unbind_all("<Button-5>")
+
+    def _mousewheel(self, event):
+        self.canvas.yview_scroll(int(-event.delta / 120), "units")
+
+    def _linux_scroll_up(self, event):
+        self.canvas.yview_scroll(-1, "units")
+
+    def _linux_scroll_down(self, event):
+        self.canvas.yview_scroll(1, "units")
+
+
+# ------------------------------------------------------------
+# CUSTOM GRAPH WIDGETS
+# ------------------------------------------------------------
+
+class BarChart(tk.Frame):
+    def __init__(self, parent, title, labels, values,
+                 value_prefix="", value_suffix="", color=ACCENT,
+                 note="", height=340):
+        super().__init__(parent, bg=PANEL, highlightbackground=GRID,
+                         highlightthickness=1)
+
+        tk.Label(
+            self, text=title, bg=PANEL, fg=TEXT,
+            font=("Segoe UI", 14, "bold"), anchor="w"
+        ).pack(fill="x", padx=14, pady=(12, 0))
+
+        if note:
+            tk.Label(
+                self, text=note, bg=PANEL, fg=MUTED,
+                font=("Segoe UI", 9), anchor="w", justify="left",
+                wraplength=900
+            ).pack(fill="x", padx=14, pady=(4, 0))
+
+        self.chart = tk.Canvas(
+            self, bg=PANEL, height=height, highlightthickness=0
+        )
+        self.chart.pack(fill="x", expand=True, padx=8, pady=8)
+
+        self.labels = labels
+        self.values = values
+        self.value_prefix = value_prefix
+        self.value_suffix = value_suffix
+        self.color = color
+
+        self.chart.bind("<Configure>", lambda e: self.draw())
+
+    def draw(self):
+        c = self.chart
+        c.delete("all")
+        w = max(c.winfo_width(), 600)
+        h = max(c.winfo_height(), 250)
+
+        left, right, top, bottom = 62, 22, 24, 55
+        plot_w = w - left - right
+        plot_h = h - top - bottom
+
+        if not self.values or max(self.values) <= 0:
+            return
+
+        maximum = max(self.values) * 1.15
+
+        for i in range(5):
+            y_val = maximum * i / 4
+            y = top + plot_h - (y_val / maximum) * plot_h
+            c.create_line(left, y, w - right, y, fill=GRID)
+            c.create_text(
+                left - 8, y, text=f"{y_val:.1f}",
+                fill=MUTED, anchor="e", font=("Segoe UI", 8)
+            )
+
+        n = len(self.values)
+        slot = plot_w / max(n, 1)
+        bar_w = min(42, slot * 0.62)
+
+        for i, (label, value) in enumerate(zip(self.labels, self.values)):
+            x = left + slot * i + slot / 2
+            bar_h = (value / maximum) * plot_h
+            y1 = top + plot_h - bar_h
+
+            c.create_rectangle(
+                x - bar_w / 2, y1, x + bar_w / 2,
+                top + plot_h, fill=self.color, outline=""
+            )
+            c.create_text(
+                x, max(y1 - 12, 9),
+                text=f"{self.value_prefix}{value:,.2f}{self.value_suffix}",
+                fill=TEXT, font=("Segoe UI", 8)
+            )
+            c.create_text(
+                x, top + plot_h + 18, text=str(label),
+                fill=MUTED, font=("Segoe UI", 8)
+            )
+
+
+class LineChart(tk.Frame):
+    def __init__(self, parent, title, labels, series,
+                 note="", height=360):
+        super().__init__(parent, bg=PANEL, highlightbackground=GRID,
+                         highlightthickness=1)
+
+        tk.Label(
+            self, text=title, bg=PANEL, fg=TEXT,
+            font=("Segoe UI", 14, "bold"), anchor="w"
+        ).pack(fill="x", padx=14, pady=(12, 0))
+
+        if note:
+            tk.Label(
+                self, text=note, bg=PANEL, fg=MUTED,
+                font=("Segoe UI", 9), anchor="w", justify="left",
+                wraplength=900
+            ).pack(fill="x", padx=14, pady=(4, 0))
+
+        self.chart = tk.Canvas(
+            self, bg=PANEL, height=height, highlightthickness=0
+        )
+        self.chart.pack(fill="x", expand=True, padx=8, pady=8)
+
+        self.labels = labels
+        self.series = series
+        self.chart.bind("<Configure>", lambda e: self.draw())
+
+    def draw(self):
+        c = self.chart
+        c.delete("all")
+        w = max(c.winfo_width(), 600)
+        h = max(c.winfo_height(), 260)
+
+        left, right, top, bottom = 62, 28, 36, 58
+        plot_w = w - left - right
+        plot_h = h - top - bottom
+
+        all_values = []
+        for series in self.series:
+            all_values.extend(series["values"])
+
+        if not all_values:
+            return
+
+        maximum = max(all_values) * 1.12
+        if maximum <= 0:
+            maximum = 1
+
+        for i in range(5):
+            value = maximum * i / 4
+            y = top + plot_h - (value / maximum) * plot_h
+            c.create_line(left, y, w - right, y, fill=GRID)
+            c.create_text(
+                left - 8, y, text=f"{value:.1f}",
+                fill=MUTED, anchor="e", font=("Segoe UI", 8)
+            )
+
+        n = len(self.labels)
+        points_x = [
+            left + i * (plot_w / max(n - 1, 1))
+            for i in range(n)
+        ]
+
+        for series_index, series in enumerate(self.series):
+            vals = series["values"]
+            color = series["color"]
+            points = []
+
+            for x, value in zip(points_x, vals):
+                y = top + plot_h - (value / maximum) * plot_h
+                points.extend([x, y])
+
+            if len(points) >= 4:
+                c.create_line(
+                    *points, fill=color, width=3, smooth=False
+                )
+
+            for i, value in enumerate(vals):
+                x = points_x[i]
+                y = top + plot_h - (value / maximum) * plot_h
+                c.create_oval(
+                    x - 4, y - 4, x + 4, y + 4,
+                    fill=color, outline=""
+                )
+
+            legend_x = left + series_index * 205
+            c.create_line(
+                legend_x, 16, legend_x + 24, 16,
+                fill=color, width=3
+            )
+            c.create_text(
+                legend_x + 31, 16, text=series["name"],
+                fill=TEXT, anchor="w", font=("Segoe UI", 9)
+            )
+
+        for i, label in enumerate(self.labels):
+            c.create_text(
+                points_x[i], top + plot_h + 20,
+                text=str(label), fill=MUTED,
+                font=("Segoe UI", 8)
+            )
+
+
+# ------------------------------------------------------------
+# MAIN APP
+# ------------------------------------------------------------
+
+class JapanFoodTourismApp:
+    def __init__(self, root):
+        self.root = root
+        root.title(APP_TITLE)
+        root.geometry("1200x850")
+        root.minsize(850, 600)
+        root.configure(bg=BG)
+
+        self._setup_theme()
+        self._build_header()
+        self._build_tabs()
+
+    def _setup_theme(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure(
+            "TNotebook", background=BG, borderwidth=0
+        )
+        style.configure(
+            "TNotebook.Tab",
+            background=PANEL_2, foreground=TEXT,
+            padding=(14, 9), font=("Segoe UI", 10, "bold")
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", ACCENT)],
+            foreground=[("selected", "#111827")]
+        )
+        style.configure(
+            "Vertical.TScrollbar",
+            background=PANEL_2, troughcolor=BG,
+            bordercolor=BG, arrowcolor=TEXT
+        )
+
+    def _build_header(self):
+        header = tk.Frame(self.root, bg=BG)
+        header.pack(fill="x", padx=22, pady=(16, 10))
+
+        tk.Label(
+            header, text="JAPAN FOOD TOURISM",
+            bg=BG, fg=ACCENT, font=("Segoe UI", 10, "bold")
+        ).pack(anchor="w")
+
+        tk.Label(
+            header, text="Social media, cuisine & economic impact",
+            bg=BG, fg=TEXT, font=("Segoe UI", 23, "bold")
+        ).pack(anchor="w", pady=(3, 0))
+
+        tk.Label(
+            header,
+            text=(
+                "Evidence dashboard • Annual data • Economic interpretation "
+                "• Research limitations"
+            ),
+            bg=BG, fg=MUTED, font=("Segoe UI", 10)
+        ).pack(anchor="w", pady=(4, 0))
+
+    def _build_tabs(self):
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+
+        self.tabs = {}
+        for name in [
+            "Overview",
+            "Graphs & Data",
+            "Social Media Timeline",
+            "Economic Impact",
+            "Research Method",
+            "Sources"
+        ]:
+            tab = ScrollableTab(notebook)
+            notebook.add(tab, text=name)
+            self.tabs[name] = tab.content
+
+        self._overview()
+        self._graphs()
+        self._social_timeline()
+        self._economic_impact()
+        self._method()
+        self._sources()
+
+    def section(self, parent, title, subtitle=None):
+        tk.Label(
+            parent, text=title, bg=BG, fg=TEXT,
+            font=("Segoe UI", 17, "bold"), anchor="w"
+        ).pack(fill="x", padx=22, pady=(22, 6))
+
+        if subtitle:
+            tk.Label(
+                parent, text=subtitle, bg=BG, fg=MUTED,
+                font=("Segoe UI", 10), anchor="w",
+                justify="left", wraplength=1050
+            ).pack(fill="x", padx=22, pady=(0, 10))
+
+    def card(self, parent, title, body, accent=ACCENT):
+        frame = tk.Frame(
+            parent, bg=PANEL, highlightbackground=GRID,
+            highlightthickness=1
+        )
+        frame.pack(fill="x", padx=22, pady=7)
+
+        tk.Frame(frame, bg=accent, width=5).pack(
+            side="left", fill="y"
+        )
+        inner = tk.Frame(frame, bg=PANEL)
+        inner.pack(side="left", fill="both", expand=True, padx=14, pady=12)
+
+        tk.Label(
+            inner, text=title, bg=PANEL, fg=TEXT,
+            font=("Segoe UI", 12, "bold"), anchor="w"
+        ).pack(fill="x")
+
+        tk.Label(
+            inner, text=body, bg=PANEL, fg=MUTED,
+            font=("Segoe UI", 10), anchor="w",
+            justify="left", wraplength=1000
+        ).pack(fill="x", pady=(5, 0))
+        return frame
+
+    def metric(self, parent, label, value, explanation, color):
+        frame = tk.Frame(
+            parent, bg=PANEL, highlightbackground=GRID,
+            highlightthickness=1
+        )
+        tk.Label(
+            frame, text=label.upper(), bg=PANEL, fg=MUTED,
+            font=("Segoe UI", 9, "bold")
+        ).pack(anchor="w", padx=14, pady=(12, 2))
+        tk.Label(
+            frame, text=value, bg=PANEL, fg=color,
+            font=("Segoe UI", 22, "bold")
+        ).pack(anchor="w", padx=14)
+        tk.Label(
+            frame, text=explanation, bg=PANEL, fg=TEXT,
+            font=("Segoe UI", 9), justify="left",
+            wraplength=280
+        ).pack(anchor="w", padx=14, pady=(3, 12))
+        return frame
+
+    # --------------------------------------------------------
+    # OVERVIEW
+    # --------------------------------------------------------
+
+    def _overview(self):
+        p = self.tabs["Overview"]
+
+        self.section(
+            p, "Executive overview",
+            "What the evidence can tell us—and what it cannot."
+        )
+
+        metrics = tk.Frame(p, bg=BG)
+        metrics.pack(fill="x", padx=22, pady=4)
+        for col in range(3):
+            metrics.grid_columnconfigure(col, weight=1)
+
+        food_2019 = trillion(FOOD_SPENDING_100M[2019])
+        food_2024 = trillion(FOOD_SPENDING_100M[2024])
+        growth = pct_change(food_2019, food_2024)
+
+        self.metric(
+            metrics, "Food spending · 2024",
+            f"¥{food_2024:.2f}T",
+            "Foreign visitors' food-related spending",
+            ACCENT
+        ).grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=6)
+
+        self.metric(
+            metrics, "Change since 2019",
+            f"+{growth:.1f}%",
+            f"¥{food_2019:.2f}T in 2019 → ¥{food_2024:.2f}T in 2024",
+            GREEN
+        ).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
+
+        self.metric(
+            metrics, "Inbound arrivals · 2024",
+            "36.87M",
+            "International visitors; record-high annual arrivals",
+            BLUE
+        ).grid(row=0, column=2, sticky="nsew", padx=(6, 0), pady=6)
+
+        self.section(p, "Main research question")
+        self.card(
+            p, "Core question",
+            "How have social-media portrayals of Japanese cuisine, "
+            "the convenience of finding food, and fan enthusiasm for "
+            "Japanese culture contributed to food tourism—and what "
+            "economic effects are visible in Japan?",
+            PURPLE
+        )
+        self.card(
+            p, "Finding 1 — food tourism is economically substantial",
+            "The annual food-related spending series rises from "
+            "¥1.3888T in 2019 to ¥2.3346T in 2024. This is a measured "
+            "spending change, not an estimate of the amount caused by "
+            "social media.",
+            GREEN
+        )
+        self.card(
+            p, "Finding 2 — the social-media connection is plausible",
+            "Academic work describes Japan's digital foodscape and "
+            "the importance of food on Instagram. A separate travel "
+            "study reports growth in Instagram and TikTok usage since "
+            "2019. These sources support a plausible mechanism, but "
+            "they do not establish how many visitors travelled because "
+            "of food videos.",
+            BLUE
+        )
+        self.card(
+            p, "Finding 3 — tourism and inflation are not the same thing",
+            "Tourist spending can increase demand for restaurants, "
+            "hotels, transport and local services. Where supply is "
+            "limited, local prices may rise. The figures here do not "
+            "calculate how much of Japan's national inflation was "
+            "caused by food tourism.",
+            RED
+        )
+        self.card(
+            p, "How to read this dashboard",
+            "Graphs use the available annual series. Years 2020 and "
+            "2021 are not silently interpolated in the food-spending "
+            "chart. Read the timeline as evidence of overlapping trends, "
+            "not proof of a single cause.",
+            ACCENT
+        )
+
+    # --------------------------------------------------------
+    # GRAPHS AND DATA
+    # --------------------------------------------------------
+
+    def _graphs(self):
+        p = self.tabs["Graphs & Data"]
+
+        self.section(
+            p, "Graphs and annual comparisons",
+            "All monetary values are nominal yen. Food-related spending "
+            "and total spending are based on the annual series in the "
+            "MAFF presentation using Japan Tourism Agency survey data."
+        )
+
+        years = list(FOOD_SPENDING_100M.keys())
+        food = [trillion(FOOD_SPENDING_100M[y]) for y in years]
+        total = [trillion(TOTAL_SPENDING_100M[y]) for y in years]
+        arrivals = [ARRIVALS_MILLIONS[y] for y in years]
+
+        BarChart(
+            p,
+            "Graph 1 — annual food-related inbound spending",
+            years, food,
+            value_prefix="¥", value_suffix="T",
+            color=ACCENT,
+            note="¥ trillion. Missing years are omitted, not estimated."
+        ).pack(fill="x", padx=22, pady=8)
+
+        BarChart(
+            p,
+            "Graph 2 — total inbound visitor spending",
+            years, total,
+            value_prefix="¥", value_suffix="T",
+            color=BLUE,
+            note="¥ trillion. This includes food, accommodation, shopping, "
+                 "transport and other visitor expenses."
+        ).pack(fill="x", padx=22, pady=8)
+
+        LineChart(
+            p,
+            "Graph 3 — food spending vs total inbound spending",
+            years,
+            [
+                {
+                    "name": "Food spending (¥T)",
+                    "values": food, "color": ACCENT
+                },
+                {
+                    "name": "Total spending (¥T)",
+                    "values": total, "color": BLUE
+                }
+            ],
+            note="Both series use the same unit. The 2020–2021 gap reflects "
+                 "missing years in this annual series; do not read a line "
+                 "between 2019 and 2022 as a continuous annual trend."
+        ).pack(fill="x", padx=22, pady=8)
+
+        BarChart(
+            p,
+            "Graph 4 — inbound tourist arrivals",
+            years, arrivals,
+            value_suffix="M",
+            color=GREEN,
+            note="Millions of visitors. The pandemic period sharply disrupted "
+                 "international travel."
+        ).pack(fill="x", padx=22, pady=8)
+
+        self.section(p, "Annual data table")
+
+        table_frame = tk.Frame(p, bg=PANEL)
+        table_frame.pack(fill="x", padx=22, pady=(0, 16))
+
+        headers = [
+            "Year", "Food spending (¥T)",
+            "Total spending (¥T)", "Arrivals (millions)"
+        ]
+
+        for col, header in enumerate(headers):
+            tk.Label(
+                table_frame, text=header, bg=PANEL_2, fg=TEXT,
+                font=("Segoe UI", 9, "bold"), anchor="w",
+                padx=8, pady=8
+            ).grid(row=0, column=col, sticky="nsew")
+
+        for row, year in enumerate(years, start=1):
+            vals = [
+                str(year),
+                f"{trillion(FOOD_SPENDING_100M[year]):.4f}",
+                f"{trillion(TOTAL_SPENDING_100M[year]):.4f}",
+                f"{ARRIVALS_MILLIONS[year]:.2f}",
+            ]
+            for col, value in enumerate(vals):
+                tk.Label(
+                    table_frame, text=value,
+                    bg=PANEL if row % 2 else PANEL_2,
+                    fg=TEXT, font=("Segoe UI", 9),
+                    anchor="w", padx=8, pady=7
+                ).grid(row=row, column=col, sticky="nsew")
+
+        for col in range(len(headers)):
+            table_frame.grid_columnconfigure(col, weight=1)
+
+        self.card(
+            p, "Data warning: 2022",
+            "The annual series reports food-related spending of "
+            "¥271.5 billion for 2022. Because this is much lower than "
+            "2023 and 2024, it should be interpreted in the context of "
+            "the reopening of international travel and the survey series. "
+            "Do not treat the 2022 value as a normal, uninterrupted year.",
+            RED
+        )
+
+        self.card(
+            p, "What the graphs show",
+            "Food-related spending rose by about 68% between 2019 and "
+            "2024. Total visitor spending also rose strongly. The two "
+            "series move in the same broad direction, but shared movement "
+            "does not by itself prove that social media caused either trend.",
+            GREEN
+        )
+
+    # --------------------------------------------------------
+    # SOCIAL MEDIA TIMELINE
+    # --------------------------------------------------------
+
+    def _social_timeline(self):
+        p = self.tabs["Social Media Timeline"]
+
+        self.section(
+            p, "When did the social-media effect begin?",
+            "There is no single verified year in these sources when "
+            "social media suddenly made Japanese food tourism explode. "
+            "Instead, the evidence identifies milestones that can be "
+            "compared with tourism spending."
+        )
+
+        self.card(
+            p, "Important distinction",
+            "The timeline combines three kinds of evidence: research on "
+            "food content, evidence about social-platform use, and actual "
+            "tourism outcomes. These measure different things. A platform "
+            "growing does not prove that Japan-food content caused a trip.",
+            RED
+        )
+
+        for item in SOCIAL_TIMELINE:
+            body = (
+                f"{item['detail']}\n\n"
+                f"Evidence type: {item['kind']}\n"
+                f"Interpretation: {item['strength']}"
+            )
+
+            if item["year"] == "2018":
+                color = PURPLE
+            elif item["year"] == "2023":
+                color = BLUE
+            elif item["year"] == "2024":
+                color = GREEN
+            elif "2020" in item["year"]:
+                color = RED
+            else:
+                color = ACCENT
+
+            self.card(
+                p, f"{item['year']} — {item['title']}",
+                body, color
+            )
+
+        self.section(p, "The likely pathway to investigate")
+        self.card(
+            p, "1. Discovery",
+            "Short videos, food photography, creator recommendations "
+            "and fan communities expose people to ramen, sushi, wagyu, "
+            "matcha desserts, convenience-store food and regional dishes.",
+            PURPLE
+        )
+        self.card(
+            p, "2. Lower planning friction",
+            "Maps, restaurant reviews, translation tools, menus and "
+            "travel videos can make it easier for a visitor to find "
+            "a restaurant and plan a food-focused itinerary.",
+            BLUE
+        )
+        self.card(
+            p, "3. A trip becomes an experience",
+            "Visitors may travel to try dishes, visit famous restaurants, "
+            "explore markets or experience places associated with anime, "
+            "games and Japanese popular culture.",
+            GREEN
+        )
+        self.card(
+            p, "4. Spending enters the economy",
+            "Food purchases create revenue for restaurants and suppliers. "
+            "Travel also generates spending on accommodation, local "
+            "transport, shopping and other services.",
+            ACCENT
+        )
+
+        self.section(p, "What would prove the link more convincingly?")
+        self.card(
+            p, "A stronger empirical test",
+            "Collect monthly or regional data on Japan-food video views "
+            "or search interest, visitor arrivals, food spending and "
+            "restaurant activity. Compare locations and periods with "
+            "different exposure, while controlling for exchange rates, "
+            "air capacity, border reopening, seasonality and other "
+            "tourism campaigns. The current annual figures alone cannot "
+            "estimate a causal effect.",
+            RED
+        )
+
+    # --------------------------------------------------------
+    # ECONOMIC IMPACT
+    # --------------------------------------------------------
+
+    def _economic_impact(self):
+        p = self.tabs["Economic Impact"]
+
+        self.section(
+            p, "Economic impact: GDP, prices and businesses",
+            "This section distinguishes observed tourism expenditure "
+            "from wider economic effects and from claims that the data "
+            "cannot prove."
+        )
+
+        self.card(
+            p, "1. GDP: direct contribution",
+            "Foreign visitors pay Japanese businesses for meals, "
+            "accommodation, transport, shopping and experiences. The "
+            "value added by Japanese businesses contributes to GDP. "
+            "However, gross visitor spending is not the same as GDP: "
+            "intermediate inputs and imported goods must be accounted for.",
+            GREEN
+        )
+
+        self.card(
+            p, "2. GDP: indirect and induced effects",
+            "Restaurants buy ingredients and services from suppliers. "
+            "Hotels, transport operators and other businesses also "
+            "serve visitors. Employees and business owners may spend "
+            "some of their income in Japan. These are wider economic "
+            "effects, but calculating them requires input-output or "
+            "tourism satellite-account methods."
+        )
+
+        self.card(
+            p, "3. Tourism's share of the economy",
+            f"WTTC estimated travel and tourism's total contribution "
+            f"at about {WTTC_TOTAL_TOURISM_GDP_SHARE_2024:.1f}% of "
+            f"Japan's GDP for 2024. OECD reporting puts direct tourism "
+            f"at about {OECD_DIRECT_TOURISM_GDP_SHARE_2023:.1f}% of "
+            "GDP in 2023. These figures use different years and "
+            "methodologies. Neither is the GDP contribution of food "
+            "tourism alone.",
+            BLUE
+        )
+
+        self.card(
+            p, "4. Inflation: where price pressure can appear",
+            "If tourist demand grows faster than local capacity, "
+            "restaurants, hotels, transport or popular neighbourhoods "
+            "may experience price pressure. This is a possible local "
+            "demand effect—not proof that food tourism caused Japan's "
+            "national inflation rate to rise."
+        )
+
+        self.card(
+            p, "5. Other causes of inflation must be separated",
+            "Japan's prices can also be affected by imported energy and "
+            "food costs, exchange rates, wages, supply constraints and "
+            "broader domestic demand. To estimate tourism's contribution, "
+            "research would need price data by location and category, "
+            "alongside measures of tourist demand and these other factors.",
+            RED
+        )
+
+        self.card(
+            p, "6. Employment and small businesses",
+            "Higher restaurant demand can support chefs, servers, "
+            "food producers, delivery services, guides and local shops. "
+            "The net effect depends on wages, staffing shortages, "
+            "seasonality and whether local businesses retain the revenue."
+        )
+
+        self.card(
+            p, "7. Convenience and distribution",
+            "Convenience stores, station food, vending machines, "
+            "cashless payments, restaurant booking tools and map "
+            "services can reduce the effort involved in finding food. "
+            "These features can improve the visitor experience, but "
+            "this dashboard does not measure their separate effect."
+        )
+
+        self.card(
+            p, "8. Cultural exports and brand value",
+            "Food tourism may encourage interest in Japanese ingredients, "
+            "cooking, regional specialities and food products. Visitors "
+            "may also buy products or recommend places after returning "
+            "home. These are plausible spillovers, but their monetary "
+            "value is not calculated here."
+        )
+
+        self.card(
+            p, "9. Costs and uneven distribution",
+            "Popular destinations can face crowding, pressure on public "
+            "transport, waste, housing or commercial rents. Benefits "
+            "may concentrate in famous districts rather than reaching "
+            "all regions. These costs matter when judging whether tourism "
+            "growth improves residents' welfare overall."
+        )
+
+        self.card(
+            p, "10. Overall assessment",
+            "The evidence supports a conclusion that inbound food "
+            "spending became a larger economic flow by 2024. Social "
+            "media is a credible discovery and planning mechanism, "
+            "but the available figures do not identify its independent "
+            "contribution to GDP, inflation or visitor growth. A careful "
+            "study should describe the connection as plausible and "
+            "consistent with the evidence—not proven causation.",
+            ACCENT
+        )
+
+        self.section(p, "Key calculations")
+        f19 = trillion(FOOD_SPENDING_100M[2019])
+        f24 = trillion(FOOD_SPENDING_100M[2024])
+        t19 = trillion(TOTAL_SPENDING_100M[2019])
+        t24 = trillion(TOTAL_SPENDING_100M[2024])
+
+        self.card(
+            p, "Food spending: 2019 → 2024",
+            f"¥{f19:.4f}T → ¥{f24:.4f}T\n"
+            f"Absolute increase: ¥{f24 - f19:.4f}T\n"
+            f"Percentage increase: {pct_change(f19, f24):.1f}%",
+            GREEN
+        )
+        self.card(
+            p, "Total inbound spending: 2019 → 2024",
+            f"¥{t19:.4f}T → ¥{t24:.4f}T\n"
+            f"Absolute increase: ¥{t24 - t19:.4f}T\n"
+            f"Percentage increase: {pct_change(t19, t24):.1f}%",
+            BLUE
+        )
+
+    # --------------------------------------------------------
+    # METHOD AND LIMITATIONS
+    # --------------------------------------------------------
+
+    def _method(self):
+        p = self.tabs["Research Method"]
+
+        self.section(
+            p, "Research method and limitations",
+            "This is an evidence dashboard, not a causal econometric model."
+        )
+
+        self.card(
+            p, "Research question",
+            "To what extent is the growth of Japanese food tourism "
+            "associated with social-media discovery and convenience, "
+            "and what measurable economic outcomes accompanied it?"
+        )
+
+        self.card(
+            p, "Dependent outcomes",
+            "Food-related inbound spending, total inbound spending "
+            "and visitor arrivals. These show tourism outcomes but "
+            "do not identify the reason for each trip."
+        )
+
+        self.card(
+            p, "Possible explanatory factors",
+            "Social-platform use, food-related online content, restaurant "
+            "discoverability, cultural fandom, exchange rates, travel "
+            "costs, airline capacity, border rules and seasonality."
+        )
+
+        self.card(
+            p, "Why 2020–2021 matter",
+            "COVID-19 and international travel restrictions created "
+            "an unusually large disruption. A simple comparison of "
+            "2019 and 2024 mixes post-pandemic reopening, changes in "
+            "prices, exchange-rate effects, visitor volumes and any "
+            "social-media influence."
+        )
+
+        self.card(
+            p, "Nominal spending versus real growth",
+            "The spending figures are nominal yen. Their increase can "
+            "reflect more visitors, more spending per visitor, higher "
+            "prices or a combination. Without a suitable price adjustment, "
+            "the increase should not be described as entirely real growth."
+        )
+
+        self.card(
+            p, "The food-spending measure",
+            "Food-related inbound spending records money spent by "
+            "foreign visitors on food-related items. It does not tell "
+            "us whether the visitor chose Japan because of a TikTok "
+            "video, anime, family recommendations, business travel "
+            "or another reason."
+        )
+
+        self.card(
+            p, "Missing annual observations",
+            "The chart uses the annual values supplied by the cited "
+            "MAFF presentation. The displayed series has no 2020 or "
+            "2021 annual food-spending observations, so those years "
+            "are not invented or interpolated."
+        )
+
+        self.card(
+            p, "A stronger follow-up project",
+            "Use monthly data, Google Trends or another documented "
+            "search-interest series, publicly documented social-media "
+            "metrics, visitor surveys, and regional spending data. "
+            "Then test whether changes in online attention precede "
+            "changes in food-related travel, while controlling for "
+            "other explanations."
+        )
+
+        self.card(
+            p, "What the current project can conclude",
+            "Food-related visitor spending increased substantially "
+            "between 2019 and 2024. Research shows that food content "
+            "was prominent in Japan's digital culture and that social "
+            "platform usage increased. These facts are consistent with "
+            "social media helping food tourism, but do not quantify or "
+            "prove that effect."
+        )
+
+    # --------------------------------------------------------
+    # SOURCES
+    # --------------------------------------------------------
+
+    def _sources(self):
+        p = self.tabs["Sources"]
+
+        self.section(
+            p, "Sources and verification",
+            "Select a source button to open the original report or "
+            "research page in your browser."
+        )
+
+        for title, description, url in SOURCES:
+            frame = tk.Frame(
+                p, bg=PANEL, highlightbackground=GRID,
+                highlightthickness=1
+            )
+            frame.pack(fill="x", padx=22, pady=7)
+
+            inner = tk.Frame(frame, bg=PANEL)
+            inner.pack(fill="x", padx=14, pady=12)
+
+            tk.Label(
+                inner, text=title, bg=PANEL, fg=TEXT,
+                font=("Segoe UI", 11, "bold"), anchor="w",
+                justify="left", wraplength=950
+            ).pack(fill="x")
+
+            tk.Label(
+                inner, text=description, bg=PANEL, fg=MUTED,
+                font=("Segoe UI", 10), anchor="w",
+                justify="left", wraplength=950
+            ).pack(fill="x", pady=(5, 8))
+
+            button = tk.Button(
+                inner, text="OPEN SOURCE ↗",
+                command=lambda link=url: open_url(link),
+                bg=PANEL_2, fg=ACCENT,
+                activebackground=ACCENT, activeforeground=BG,
+                relief="flat", cursor="hand2",
+                font=("Segoe UI", 9, "bold"),
+                padx=12, pady=7
+            )
+            button.pack(anchor="w")
+
+        self.section(p, "Data definitions")
+        self.card(
+            p, "Food-related spending",
+            "Foreign visitor spending classified as food-related "
+            "in the cited Japan Tourism Agency-based series."
+        )
+        self.card(
+            p, "Total inbound spending",
+            "Visitor expenditure across the survey's expense categories. "
+            "It is not the same as GDP or domestic tourism spending."
+        )
+        self.card(
+            p, "Tourism GDP contribution",
+            "GDP contribution measures value added, not simply the "
+            "total money spent by visitors. Wider contribution estimates "
+            "can include direct, indirect and induced effects."
+        )
+        self.card(
+            p, "Social-media evidence",
+            "Platform adoption and food-content research establish "
+            "context and plausible mechanisms. They are not a direct "
+            "measure of food-tourism trips caused by social media."
+        )
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = JapanFoodTourismApp(root)
+    root.mainloop()
